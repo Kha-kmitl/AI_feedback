@@ -4,10 +4,14 @@
 from ultralytics import YOLO
 import cv2
 import math
-
+import serial
 # model ################################
 model = YOLO("yolo11m.pt")
 ########################################
+
+# serial port #########################
+
+ser = serial.Serial('/dev/tty.usbmodem411RE', 115200, timeout=1)
 
 # Camera parameters ##################
 FOCAL_LENGTH_PX = 700
@@ -60,8 +64,12 @@ while True:
                 else:
                     distance_cm = 0
 
-                # Print resualt
+                # Print result
                 print(f"Bottle {bottle_count}: Distance: {distance_cm:.1f} cm, Angle: {angle_deg:.1f}°")
+
+                # Send to STM32
+                msg = f"{bottle_count},{distance_cm:.1f},{angle_deg:.1f}\n"
+                ser.write(msg.encode())
 
                 # Draw rectangle
                 label = f"Bottle {bottle_count}: {distance_cm:.1f}cm, {angle_deg:.1f}°"
@@ -80,4 +88,5 @@ while True:
 
 cap.release()
 cv2.destroyAllWindows()
+ser.close()
 # End of code ###########################
