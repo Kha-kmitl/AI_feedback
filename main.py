@@ -11,11 +11,11 @@ model = YOLO("yolo11m.pt")
 
 # serial port #########################
 
-ser = serial.Serial('/dev/tty.usbmodem411RE', 115200, timeout=1)
+# ser = serial.Serial('/dev/tty.usbmodem411RE', 115200, timeout=1)
 
 # Camera parameters ##################
-FOCAL_LENGTH_PX = 700
-REAL_OBJECT_WIDTH_CM = 20
+FOCAL_LENGTH_PX = 389.23  # Use this value for accurate distance calculation
+REAL_OBJECT_WIDTH_CM = 32.5
 ########################################
 
 # video + AI ###########################
@@ -38,6 +38,7 @@ while True:
     results = model(frame, verbose=False)
 
     bottle_count = 0
+    bottle_close = False  # Track if any bottle is close
 
     for result in results:
         boxes = result.boxes
@@ -64,12 +65,12 @@ while True:
                 else:
                     distance_cm = 0
 
+                # Check if bottle is close
+                if distance_cm < 55:
+                    bottle_close = True
+
                 # Print result
                 print(f"Bottle {bottle_count}: Distance: {distance_cm:.1f} cm, Angle: {angle_deg:.1f}°")
-
-                # Send to STM32
-                msg = f"{bottle_count},{distance_cm:.1f},{angle_deg:.1f}\n"
-                ser.write(msg.encode())
 
                 # Draw rectangle
                 label = f"Bottle {bottle_count}: {distance_cm:.1f}cm, {angle_deg:.1f}°"
@@ -80,6 +81,12 @@ while True:
                 cv2.circle(frame, (center_x, center_y), 5, (255, 0, 0), -1)
                 cv2.circle(frame, (obj_x, (y1 + y2) // 2), 5, (0, 0, 255), -1)
                 cv2.line(frame, (center_x, center_y), (obj_x, (y1 + y2) // 2), (255, 255, 0), 2)
+
+    # Output ON/OFF based on bottle distance
+    if bottle_close:
+        print("ON")
+    else:
+        print("OFF")
 
     cv2.imshow("Main camera", frame)
 
